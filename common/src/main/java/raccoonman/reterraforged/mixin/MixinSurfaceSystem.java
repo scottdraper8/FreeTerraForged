@@ -224,7 +224,11 @@ class MixinSurfaceSystem {
 						if (maxNeighborWaterY > scaledY) {
 							for (int wy = scaledY + 1; wy <= maxNeighborWaterY; wy++) {
 								pos.set(globalX, wy, globalZ);
-								chunk.setBlockState(pos, stone, false);
+
+								// ONLY REPLACE AIR
+								if (chunk.getBlockState(pos).isAir()) {
+									chunk.setBlockState(pos, stone, false);
+								}
 							}
 						}
 					}

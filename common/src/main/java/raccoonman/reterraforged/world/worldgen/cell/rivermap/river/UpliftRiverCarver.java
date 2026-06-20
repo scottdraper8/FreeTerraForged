@@ -43,6 +43,9 @@ public class UpliftRiverCarver implements RTFRiverCarver {
     private Noise lakeWarpNoise;
     public LakeConfig lakeConfig;
 
+    // --- UPDATED: LARGE-SCALE 3D PROJECTION NOISE MODULE ---
+    private Noise projectionNoise;
+
     // --- PER-RIVER VARIANCE FIELDS ---
     private final float riverValleyWidthModifier;
     private boolean isUpliftContinent;
@@ -84,20 +87,21 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         this.gullyNoise = Noises.simplex(9876, 65, 2);
         this.rivuletNoise = Noises.simplex(5432, 20, 2);
 
-        // Multi-octave simplex noise for complex, jagged lake boundaries (Scale 55, 3 Octaves)
+        // Multi-octave simplex noise for complex, jagged lake boundaries
         this.lakeWarpNoise = Noises.simplex(7439, 55, 3);
+
+        // --- FIXED OPTIMIZATION: Broad scale, single octave prevents micro-spikes ---
+        this.projectionNoise = Noises.simplex(9999, 140, 1);
 
         this.lakeConfig = lakeConfig;
         this.isUpliftContinent = isUpliftContinent;
 
-        // --- INITIALIZE DETERMINISTIC PER-RIVER VALLEY VARIANCE ---
         int rh1 = Float.floatToIntBits(river.x1);
         int rh2 = Float.floatToIntBits(river.z1);
         long uniqueRiverSeed = ((long) rh1 << 32) | (rh2 & 0xFFFFFFFFL);
-        uniqueRiverSeed ^= 0x4B3C2B1A5L; // Unique salt modifier for valley layout variance
+        uniqueRiverSeed ^= 0x4B3C2B1A5L;
 
         Random riverVarRand = new Random(uniqueRiverSeed);
-        // Generates a scaling factor between 0.70 and 1.30 (+/- 30% total width deviation per river system)
         this.riverValleyWidthModifier = 0.70F + riverVarRand.nextFloat() * 0.60F;
     }
 
@@ -111,13 +115,11 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         float scaleFactor = 1.0F + 0.75F * flatnessFactor;
         float sqScaleFactor = scaleFactor * scaleFactor;
 
-        // --- ENVIRONMENTAL VARIATION SAMPLES ---
         float widthVar = this.widthNoise.compute(currX, currZ, 8241);
         float depthVar = this.depthNoise.compute(currX, currZ, 3912);
         float terraceMask = this.terraceNoise.compute(currX, currZ, 5510);
         float asymmetry = this.asymmetryNoise.compute(currX, currZ, 1193);
 
-        // --- DRAINAGE CALCULATION (Ridged Noise) ---
         float gullyRaw = this.gullyNoise.compute(currX, currZ, 9876);
         float gullyShape = 1.0F - Math.abs(gullyRaw);
         gullyShape *= gullyShape;
@@ -132,7 +134,6 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         float dynamicDepthMult = 1.0F + (depthVar * 0.25F);
         float sideBias = 1.0F + (asymmetry * 0.4F);
 
-        // --- 1. TARGET ELEVATIONS ---
         float oceanHeightOffset = levels.water;
         float targetWaterLevel = ContinentalHydrology.getWeightedWaterHeight(cell.waterTable) + oceanHeightOffset;
 
@@ -144,11 +145,9 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         float targetValleyFloor = targetWaterLevel + bankHeightOffset;
         float discrepancyScale = 1.0F + (levels.scale(cell.height - targetWaterLevel)) / 100.0F;
 
-        // --- RADII BOUNDARIES ---
         float biasedScale = sqScaleFactor * dynamicWidthMult * sideBias;
         float zone1Radius = (float) Math.sqrt(this.getScaledSize(currT, this.bedWidth) * biasedScale);
 
-        // --- ORGANIC LAKE SHORELINE WARPING MODULATION ---
         float plateauInput = isUpliftContinent ? cell.waterTable : currT;
         int plateauIndex = ContinentalHydrology.getStepId(plateauInput);
         float widenMultiplier = 1.0F;
@@ -161,7 +160,6 @@ public class UpliftRiverCarver implements RTFRiverCarver {
             float shorelineWarp = this.lakeWarpNoise.compute(currX, currZ, 7439);
             float organicWarpFactor = baseStepScale * (1.0F + shorelineWarp * 0.45F);
 
-            // --- SMOOTH DISTANCE FADE FACTOR ---
             float distanceMask = 1.0F;
             float fadeWindow = 0.04F;
 
@@ -177,20 +175,16 @@ public class UpliftRiverCarver implements RTFRiverCarver {
             zone1Radius *= widenMultiplier;
         }
 
-        // Additive chaining recalculates layout bounds
         float zone2Width = (config.maxBankHeight - config.minBankHeight) / this.levels.unit * biasedScale;
         float zone2Radius = zone1Radius + zone2Width;
 
-        // --- APPLY PER-RIVER VARIANCE TO ZONE 3 VALLEY FLOOR ---
         float zone3Width = config.bankWidth * dynamicWidthMult * this.riverValleyWidthModifier;
         float zone3Radius = zone2Radius + zone3Width;
 
-        // Zone 4 dynamically accommodates the changes automatically via the chain
         float zone4Radius = zone3Radius + (zone3Width * (4 + discrepancyScale));
 
         if (currentLinearDist >= zone4Radius) return;
 
-        // --- 3. PROFILE SELECTION ---
         float finalHeight = cell.height;
 
         if (currentLinearDist < zone1Radius) {
@@ -210,6 +204,34 @@ public class UpliftRiverCarver implements RTFRiverCarver {
             finalHeight = carveZone4Fadeout(cell.height, currentLinearDist, zone3Radius, zone4Radius, targetValleyFloor, terraceMask, drainageMask);
             if (cell.riverZone != RiverCarverSettings.RiverZone.Riverbed && cell.riverZone != RiverCarverSettings.RiverZone.Banks && cell.riverZone != RiverCarverSettings.RiverZone.ValleyFloor) {
                 cell.riverZone = RiverCarverSettings.RiverZone.ValleyFadeout;
+            }
+        }
+
+        // --- UPDATED: STABILIZED CANYON BLUFF INTERCEPTOR ---
+        float narrowThresholdRadius = 7.5F;
+        if (zone1Radius < narrowThresholdRadius) {
+            float narrowFactor = 1.0F - (zone1Radius / narrowThresholdRadius);
+            narrowFactor = NoiseUtil.clamp(narrowFactor, 0.0F, 1.0F);
+
+            // Normalized factor prevents vertical column tearing
+            float yProxy = cell.height * 10.0F;
+            float sampleX = currX + (yProxy * 0.15F);
+            float sampleZ = currZ + (yProxy * 0.15F);
+
+            float rawProjNoise = this.projectionNoise.compute(sampleX, sampleZ, 9999);
+
+            // Opens up the calculation window to capture larger rolling bluffs
+            if (rawProjNoise > -0.2F) {
+                float projectionStrength = (rawProjNoise - (-0.2F)) / 1.2F;
+                projectionStrength = NoiseUtil.clamp(projectionStrength, 0.0F, 1.0F) * narrowFactor;
+
+                // Center Guard: Ensures water thread is never choked shut by stone shelves
+                float distanceToCenterRatio = currentLinearDist / zone1Radius;
+                float centerSoftener = NoiseUtil.clamp(distanceToCenterRatio * 1.5F, 0.0F, 1.0F);
+                projectionStrength *= centerSoftener;
+
+                // Seamless blending forces monolithic rock protrusions to form along walls
+                finalHeight = NoiseUtil.lerp(finalHeight, cell.height, projectionStrength * 0.85F);
             }
         }
 
@@ -285,8 +307,6 @@ public class UpliftRiverCarver implements RTFRiverCarver {
             cell.riverMask = Math.min(cell.riverMask, 1.0F - valleyInfluence);
         }
     }
-
-    // --- PLATEAU SELECTION HELPER METHODS ---
 
     private boolean shouldWidenOnPlateau(int plateauIndex, LakeConfig config, float currT) {
         if (plateauIndex < -1) return false;

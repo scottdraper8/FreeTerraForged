@@ -4,41 +4,45 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.mojang.serialization.MapCodec;
+import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.core.Holder;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.KeyDispatchDataCodec;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.SurfaceRules;
 import net.minecraft.world.level.levelgen.SurfaceRules.Context;
 import raccoonman.reterraforged.world.worldgen.RTFRandomState;
-import raccoonman.reterraforged.world.worldgen.noise.NoiseUtil;
 import raccoonman.reterraforged.world.worldgen.noise.module.Noise;
 import raccoonman.reterraforged.world.worldgen.noise.module.Noises;
 import raccoonman.reterraforged.world.worldgen.surface.RTFSurfaceSystem;
 
-public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Strata> strata, int iterations) implements SurfaceRules.RuleSource {
+public record StrataRule(ResourceLocation name, Holder<Noise> selector, Holder<Noise> depthNoise, int iterations) implements SurfaceRules.RuleSource {
+
+	private static final BlockState[] HARDCODED_LAYERS = {
+			Blocks.MOSS_BLOCK.defaultBlockState(),
+			Blocks.MOSSY_COBBLESTONE.defaultBlockState(),
+			Blocks.STONE.defaultBlockState(),
+			Blocks.ANDESITE.defaultBlockState(),
+			Blocks.COBBLESTONE.defaultBlockState(),
+			Blocks.TUFF.defaultBlockState(),
+			Blocks.DEEPSLATE.defaultBlockState(),
+			Blocks.SMOOTH_BASALT.defaultBlockState()
+	};
+
 	public static final MapCodec<StrataRule> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			ResourceLocation.CODEC.fieldOf("name").forGetter(StrataRule::name),
 			Noise.CODEC.fieldOf("selector").forGetter(StrataRule::selector),
-			Strata.CODEC.listOf().fieldOf("strata").forGetter(StrataRule::strata),
+			Noise.CODEC.fieldOf("depth_noise").forGetter(StrataRule::depthNoise),
 			Codec.INT.fieldOf("iterations").forGetter(StrataRule::iterations)
 	).apply(instance, StrataRule::new));
-
-	public StrataRule {
-		strata = ImmutableList.copyOf(strata);
-	}
 
 	@Override
 	public Source apply(Context ctx) {
@@ -56,49 +60,23 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 
 	private List<List<Layer>> generateStrata(RandomSource random) {
 		List<List<Layer>> layers = new ArrayList<>();
-		for(int i = 0; i < this.iterations; i++) {
-			List<Layer> layer = new ArrayList<>();
-			for(Strata strata : this.strata) {
-				layer.addAll(strata.generateLayers(random));
-			}
-			layers.add(layer);
+		List<Layer> singleStrataSequence = new ArrayList<>();
+		int seed = random.nextInt();
+
+		for (BlockState state : HARDCODED_LAYERS) {
+			float minDepth = 1.5F;
+			float maxDepth = 4.0F;
+			float depth = minDepth + random.nextFloat() * (maxDepth - minDepth);
+
+			singleStrataSequence.add(new Layer(
+					state,
+					Noises.shiftSeed(Noises.mul(this.depthNoise.value(), depth), random.nextInt()),
+					seed
+			));
 		}
+
+		layers.add(singleStrataSequence);
 		return layers;
-	}
-
-	public record Strata(TagKey<Block> materials, Holder<Noise> noise, int attempts, int minLayers, int maxLayers, float minDepth, float maxDepth) {
-		public static final Codec<Strata> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				TagKey.hashedCodec(Registries.BLOCK).fieldOf("materials").forGetter(Strata::materials),
-				Noise.CODEC.fieldOf("noise").forGetter(Strata::noise),
-				Codec.INT.fieldOf("attempts").forGetter(Strata::attempts),
-				Codec.INT.fieldOf("min_layers").forGetter(Strata::minLayers),
-				Codec.INT.fieldOf("max_layers").forGetter(Strata::maxLayers),
-				Codec.FLOAT.fieldOf("min_depth").forGetter(Strata::minDepth),
-				Codec.FLOAT.fieldOf("max_depth").forGetter(Strata::maxDepth)
-		).apply(instance, Strata::new));
-
-		public List<Layer> generateLayers(RandomSource random) {
-			int lastIndex = -1;
-			int layers = this.minLayers + NoiseUtil.round(random.nextFloat() * (this.maxLayers - this.minLayers));
-			List<Layer> result = new ArrayList<>();
-			List<Holder<Block>> materials = ImmutableList.copyOf(BuiltInRegistries.BLOCK.getTagOrEmpty(this.materials));
-
-			int seed = random.nextInt();
-			for (int i = 0; i < layers; i++) {
-				int attempts = this.attempts;
-				int index = random.nextInt(materials.size());
-				while (--attempts >= 0 && index == lastIndex) {
-					index = random.nextInt(materials.size());
-				}
-				if (index != lastIndex) {
-					lastIndex = index;
-					BlockState material = materials.get(index).value().defaultBlockState();
-					float depth = this.minDepth + random.nextFloat() * (this.maxDepth - this.minDepth);
-					result.add(new Layer(material, Noises.shiftSeed(Noises.mul(this.noise.value(), depth), random.nextInt()), seed));
-				}
-			}
-			return result;
-		}
 	}
 
 	public record Layer(BlockState material, Noise depth, int seed) {
@@ -109,15 +87,14 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 
 	private class Source implements SurfaceRules.SurfaceRule {
 		private Context surfaceContext;
-		private Noise selector;
 		private List<List<Layer>> strata;
 		private List<Layer> layers;
 		private float[] depthBuffer;
 		private long lastUpdateXZ;
+		private boolean isUnderwater;
 
 		public Source(Context surfaceContext, Noise selector, List<List<Layer>> strata) {
 			this.surfaceContext = surfaceContext;
-			this.selector = selector;
 			this.strata = strata;
 			this.lastUpdateXZ = Long.MIN_VALUE;
 		}
@@ -130,15 +107,19 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 				this.lastUpdateXZ = this.surfaceContext.lastUpdateXZ;
 			}
 
-			Layer last = null;
+			// Safely skip ocean beds and river floors so vanilla sand/gravel can spawn
+			if (this.isUnderwater) {
+				return null;
+			}
+
 			for(int i = 0; i < this.layers.size(); i++) {
-				Layer layer = last = this.layers.get(i);
+				Layer layer = this.layers.get(i);
 				if(y > this.depthBuffer[i]) {
 					return layer.material();
 				}
 			}
 
-			return last != null ? last.material() : null;
+			return null;
 		}
 
 		private void initBuffer(int x, int z) {
@@ -149,29 +130,39 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 				this.depthBuffer = new float[layerCount];
 			}
 
+			// TRICK: Because surface rules evaluate from top to bottom, the first
+			// Y coordinate hit when the XZ column updates IS the true ground surface.
+			int oceanFloor = this.surfaceContext.blockY;
+
+			// Check the block directly above the surface stone. If it's water, we are in an ocean/river!
 			int localX = this.surfaceContext.blockX & 0xF;
 			int localZ = this.surfaceContext.blockZ & 0xF;
-			int height = this.surfaceContext.chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ);
+			BlockState blockAbove = this.surfaceContext.chunk.getBlockState(new BlockPos(localX, oceanFloor + 1, localZ));
+			this.isUnderwater = blockAbove.is(Blocks.WATER) || !blockAbove.getFluidState().isEmpty();
 
-			float sum = 0.0F;
+			int currentY = oceanFloor;
 			for(int i = 0; i < layerCount; i++) {
 				Layer layer = this.layers.get(i);
-				float depth = layer.computeDepth(x, z);
-				sum += depth;
-				this.depthBuffer[i] = depth;
-			}
+				float thickness = Math.max(1.0F, layer.computeDepth(x, z));
+				currentY -= Math.round(thickness);
 
-			int y = height;
-			for(int i = 0; i < layerCount; i++) {
-				this.depthBuffer[i] = y -= Math.round((this.depthBuffer[i] / sum) * height);
+				int jitter = getCoordJitter(x, z, i);
+				float targetDepth = currentY + jitter;
+
+				// Maintain the 1-block minimum thickness guarantee
+				float maxAllowedDepth = (i == 0 ? oceanFloor : this.depthBuffer[i - 1]) - 1.0F;
+				this.depthBuffer[i] = Math.min(targetDepth, maxAllowedDepth);
 			}
 		}
 
+		private int getCoordJitter(int x, int z, int layerIndex) {
+			long hash = (long) x * 3129871L ^ (long) z * 116129781L ^ (long) layerIndex * 999983L;
+			hash = hash * hash * 42317861L + hash * 11L;
+			return (int) (Math.abs(hash) % 5) - 2;
+		}
+
 		private List<Layer> selectLayers(int x, int z) {
-			float selector = this.selector.compute(x, z, 0);
-			int index = (int) (selector * this.strata.size());
-			index = Math.min(this.strata.size() - 1, index);
-			return this.strata.get(index);
+			return this.strata.get(0);
 		}
 	}
 }
