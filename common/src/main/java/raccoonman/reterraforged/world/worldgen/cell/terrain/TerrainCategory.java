@@ -127,6 +127,38 @@ public enum TerrainCategory implements ITerrain {
         public boolean isOverground() {
             return true;
         }
+    },
+    RIVER_SHORE {
+        @Override
+        public boolean isRiverShore() {
+            return true;
+        }
+
+        @Override
+        public boolean isOverground() {
+            return true;
+        }
+
+        @Override
+        public boolean overridesCoast() {
+            return true;
+        }
+    },
+    LAKE_SHORE {
+        @Override
+        public boolean isLakeShore() {
+            return true;
+        }
+
+        @Override
+        public boolean isOverground() {
+            return true;
+        }
+
+        @Override
+        public boolean overridesCoast() {
+            return true;
+        }
     };
     
     public TerrainCategory getDominant(TerrainCategory other) {

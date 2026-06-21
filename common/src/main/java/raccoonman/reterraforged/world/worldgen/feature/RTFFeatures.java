@@ -18,6 +18,7 @@ public class RTFFeatures {
 	public static final Feature<DecorateSnowFeature.Config> DECORATE_SNOW = register("decorate_snow", new DecorateSnowFeature(DecorateSnowFeature.Config.CODEC));
 	public static final Feature<SwampSurfaceFeature.Config> SWAMP_SURFACE = register("swamp_surface", new SwampSurfaceFeature(SwampSurfaceFeature.Config.CODEC));
 	public static final Feature<NoneFeatureConfiguration> RIVER_GASKET = register("river_gasket", new RiverGasketFeature(NoneFeatureConfiguration.CODEC));
+	public static final Feature<BeachSurfaceFeature.Config> BEACH_SURFACE = register("beach_surface", new BeachSurfaceFeature(BeachSurfaceFeature.Config.CODEC));
 
 	public static void bootstrap() {
 

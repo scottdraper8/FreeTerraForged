@@ -6,7 +6,6 @@ import raccoonman.reterraforged.data.worldgen.preset.PresetTerrainTypeNoise;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
 import raccoonman.reterraforged.data.worldgen.preset.settings.TerrainSettings;
 import raccoonman.reterraforged.data.worldgen.preset.settings.WorldSettings;
-import raccoonman.reterraforged.data.worldgen.preset.settings.WorldSettings.ControlPoints;
 import raccoonman.reterraforged.world.worldgen.GeneratorContext;
 import raccoonman.reterraforged.world.worldgen.biome.Erosion;
 import raccoonman.reterraforged.world.worldgen.biome.Weirdness;
@@ -35,7 +34,7 @@ import raccoonman.reterraforged.world.worldgen.noise.module.Noise;
 import raccoonman.reterraforged.world.worldgen.noise.module.Noises;
 import raccoonman.reterraforged.world.worldgen.util.Seed;
 
-public record Heightmap(CellPopulator terrain, CellPopulator region, Continent continent, Climate climate, Levels levels, ControlPoints controlPoints, float terrainFrequency, Noise beachNoise) {
+public record Heightmap(CellPopulator terrain, CellPopulator region, Continent continent, Climate climate, Levels levels, WorldSettings.ControlPoints controlPoints, float terrainFrequency, Noise beachNoise, Noise beachSurfaceNoise, Noise beachMaterialNoise) {
 	
 	public void apply(Cell cell, float x, float z, boolean applyClimate) {
 		this.applyTerrain(cell, x, z);
@@ -49,6 +48,8 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
 	public void applyTerrain(Cell cell, float x, float z) {
         cell.terrain = TerrainType.FLATS;
         cell.beachNoise = this.beachNoise.compute(x, z, 0);
+        cell.beachSurfaceNoise = this.beachSurfaceNoise.compute(x, z, 0);
+        cell.beachMaterialNoise = this.beachMaterialNoise.compute(x, z, 0);
         this.continent.apply(cell, x, z);
         this.region.apply(cell, x, z);
         this.terrain.apply(cell, x * this.terrainFrequency, z * this.terrainFrequency);
@@ -93,7 +94,7 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
     	
         Preset preset = ctx.preset;
         WorldSettings world = ctx.preset.world();
-        ControlPoints controlPoints = world.controlPoints;
+        WorldSettings.ControlPoints controlPoints = world.controlPoints;
 
         TerrainSettings terrainSettings = preset.terrain();
         TerrainSettings.General general = terrainSettings.general;
@@ -154,7 +155,11 @@ public record Heightmap(CellPopulator terrain, CellPopulator region, Continent c
 
         Noise beachNoise = Noises.perlin2(ctx.seed.next(), 20, 1);
         beachNoise = Noises.mul(beachNoise, ctx.levels.scale(5));
-        return new Heightmap(terrain, region, continent, climate, levels, controlPoints, terrainFrequency, beachNoise);
+        Noise beachSurfaceNoise = Noises.perlin2(ctx.seed.next(), 48, 2);
+        beachSurfaceNoise = Noises.map(beachSurfaceNoise, 0.0F, 1.0F);
+        Noise beachMaterialNoise = Noises.perlin2(ctx.seed.next(), 96, 3);
+        beachMaterialNoise = Noises.map(beachMaterialNoise, 0.0F, 1.0F);
+        return new Heightmap(terrain, region, continent, climate, levels, controlPoints, terrainFrequency, beachNoise, beachSurfaceNoise, beachMaterialNoise);
 	}
 	
 	private static boolean isIslandTerrain(Cell cell) {

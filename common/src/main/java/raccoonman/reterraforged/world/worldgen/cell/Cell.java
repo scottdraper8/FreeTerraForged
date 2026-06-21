@@ -3,6 +3,8 @@ package raccoonman.reterraforged.world.worldgen.cell;
 import raccoonman.reterraforged.concurrent.Resource;
 import raccoonman.reterraforged.concurrent.SimpleResource;
 import raccoonman.reterraforged.concurrent.pool.ThreadLocalPool;
+import raccoonman.reterraforged.world.worldgen.cell.beach.BeachMaterial;
+import raccoonman.reterraforged.world.worldgen.cell.beach.BeachType;
 import raccoonman.reterraforged.world.worldgen.cell.biome.type.BiomeType;
 import raccoonman.reterraforged.world.worldgen.cell.rivermap.river.RiverCarverSettings;
 import raccoonman.reterraforged.world.worldgen.cell.terrain.Terrain;
@@ -55,6 +57,22 @@ public class Cell {
     public float moisture;
 
     public float beachNoise;
+    public float beachSurfaceNoise;
+    public float beachMaterialNoise;
+    public float beachSurfaceAlpha;
+    public float oceanShoreAlpha;
+    public float oceanShoreDistance;
+    public float riverWidth;
+    public float riverDepth;
+    public float riverBankHeight;
+    public float riverBankAlpha;
+    public float riverShoreAlpha;
+    public float lakeShoreAlpha;
+    public float lakeBankAlpha;
+    public float lakeBankHeight;
+    public float lakeDepth;
+    public BeachType beachType;
+    public BeachMaterial beachMaterial;
     public RiverCarverSettings.RiverZone riverZone = RiverCarverSettings.RiverZone.None;
 
     public Cell() {
@@ -67,6 +85,8 @@ public class Cell {
         this.biome = BiomeType.GRASSLAND;
         this.waterTable = 0.0F;
         this.continentSizeModifier = 1.0F;
+        this.beachType = BeachType.NONE;
+        this.beachMaterial = BeachMaterial.NONE;
     }
     
     public void copyFrom(Cell other) {
@@ -98,6 +118,22 @@ public class Cell {
         this.temperature = other.temperature;
         this.moisture = other.moisture;
         this.beachNoise = other.beachNoise;
+        this.beachSurfaceNoise = other.beachSurfaceNoise;
+        this.beachMaterialNoise = other.beachMaterialNoise;
+        this.beachSurfaceAlpha = other.beachSurfaceAlpha;
+        this.oceanShoreAlpha = other.oceanShoreAlpha;
+        this.oceanShoreDistance = other.oceanShoreDistance;
+        this.riverWidth = other.riverWidth;
+        this.riverDepth = other.riverDepth;
+        this.riverBankHeight = other.riverBankHeight;
+        this.riverBankAlpha = other.riverBankAlpha;
+        this.riverShoreAlpha = other.riverShoreAlpha;
+        this.lakeShoreAlpha = other.lakeShoreAlpha;
+        this.lakeBankAlpha = other.lakeBankAlpha;
+        this.lakeBankHeight = other.lakeBankHeight;
+        this.lakeDepth = other.lakeDepth;
+        this.beachType = other.beachType;
+        this.beachMaterial = other.beachMaterial;
         this.continentSizeModifier = other.continentSizeModifier;
         this.riverWaterLevel = other.riverWaterLevel;
         this.riverZone = other.riverZone;

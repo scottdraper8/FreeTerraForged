@@ -27,6 +27,7 @@ public class PresetBiomeModifierData {
 	public static final ResourceKey<BiomeModifier> ADD_EROSION = createKey("add_erosion");
 	public static final ResourceKey<BiomeModifier> ADD_SNOW_PROCESSING = createKey("add_snow_processing");
 	public static final ResourceKey<BiomeModifier> ADD_SWAMP_SURFACE = createKey("add_swamp_surface");
+	public static final ResourceKey<BiomeModifier> ADD_BEACH_SURFACE = createKey("add_beach_surface");
 
 	public static final ResourceKey<BiomeModifier> REPLACE_PLAINS_TREES = createKey("replace_plains_trees");
 	public static final ResourceKey<BiomeModifier> REPLACE_FOREST_TREES = createKey("replace_forest_trees");
@@ -168,6 +169,7 @@ public class PresetBiomeModifierData {
 		}
 
 		ctx.register(ADD_SWAMP_SURFACE, prepend(GenerationStep.Decoration.RAW_GENERATION, Filter.Behavior.WHITELIST, swamps, placedFeatures.getOrThrow(PresetPlacedFeatures.SWAMP_SURFACE)));
+		ctx.register(ADD_BEACH_SURFACE, append(GenerationStep.Decoration.RAW_GENERATION, placedFeatures.getOrThrow(PresetPlacedFeatures.BEACH_SURFACE)));
 
 		ctx.register(ADD_RIVER_GASKET, prepend(GenerationStep.Decoration.RAW_GENERATION, placedFeatures.getOrThrow(PresetPlacedFeatures.RIVER_GASKET)));
 	}

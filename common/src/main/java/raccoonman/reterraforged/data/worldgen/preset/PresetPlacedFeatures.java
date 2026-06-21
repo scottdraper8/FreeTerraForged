@@ -31,6 +31,7 @@ public class PresetPlacedFeatures {
 	public static final ResourceKey<PlacedFeature> ERODE = createKey("erode");
 	public static final ResourceKey<PlacedFeature> DECORATE_SNOW = createKey("decorate_snow");
 	public static final ResourceKey<PlacedFeature> SWAMP_SURFACE = createKey("swamp_surface");
+	public static final ResourceKey<PlacedFeature> BEACH_SURFACE = createKey("beach_surface");
 
 	public static final ResourceKey<PlacedFeature> OAK_SMALL = createKey("oak/small");
 	public static final ResourceKey<PlacedFeature> OAK_FOREST = createKey("oak/forest");
@@ -100,6 +101,7 @@ public class PresetPlacedFeatures {
 		}
 		
 		PlacementUtils.register(ctx, SWAMP_SURFACE, features.getOrThrow(PresetConfiguredFeatures.SWAMP_SURFACE));
+		PlacementUtils.register(ctx, BEACH_SURFACE, features.getOrThrow(PresetConfiguredFeatures.BEACH_SURFACE));
 		PlacementUtils.register(ctx, RIVER_GASKET, features.getOrThrow(PresetConfiguredFeatures.RIVER_GASKET));
 		
         if(!miscellaneous.vanillaSprings) {

@@ -39,6 +39,7 @@ import raccoonman.reterraforged.world.worldgen.feature.BushFeature;
 import raccoonman.reterraforged.world.worldgen.feature.DecorateSnowFeature;
 import raccoonman.reterraforged.world.worldgen.feature.ErodeFeature;
 import raccoonman.reterraforged.world.worldgen.feature.RTFFeatures;
+import raccoonman.reterraforged.world.worldgen.feature.BeachSurfaceFeature;
 import raccoonman.reterraforged.world.worldgen.feature.SwampSurfaceFeature;
 import raccoonman.reterraforged.world.worldgen.feature.chance.ChanceFeature;
 import raccoonman.reterraforged.world.worldgen.feature.chance.ChanceModifier;
@@ -54,6 +55,7 @@ public class PresetConfiguredFeatures {
 	public static final ResourceKey<ConfiguredFeature<?, ?>> ERODE = createKey("erode");
 	public static final ResourceKey<ConfiguredFeature<?, ?>> DECORATE_SNOW = createKey("decorate_snow");
 	public static final ResourceKey<ConfiguredFeature<?, ?>> SWAMP_SURFACE = createKey("swamp_surface");
+	public static final ResourceKey<ConfiguredFeature<?, ?>> BEACH_SURFACE = createKey("beach_surface");
 
 	public static final ResourceKey<ConfiguredFeature<?, ?>> OAK_SMALL = createKey("oak/small");
 	public static final ResourceKey<ConfiguredFeature<?, ?>> OAK_FOREST = createKey("oak/forest");
@@ -133,6 +135,11 @@ public class PresetConfiguredFeatures {
 		
 		FeatureUtils.register(ctx, SWAMP_SURFACE, RTFFeatures.SWAMP_SURFACE, new SwampSurfaceFeature.Config(Blocks.CLAY.defaultBlockState(), Blocks.GRAVEL.defaultBlockState(), Blocks.DIRT.defaultBlockState()));
 		FeatureUtils.register(ctx, RIVER_GASKET, RTFFeatures.RIVER_GASKET, FeatureConfiguration.NONE);
+		FeatureUtils.register(ctx, BEACH_SURFACE, RTFFeatures.BEACH_SURFACE, new BeachSurfaceFeature.Config(
+			preset.world().beaches.ocean.surfaceDepth,
+			preset.world().beaches.river.surfaceDepth,
+			preset.world().beaches.lake.surfaceDepth
+		));
 		
 		if(miscellaneous.customBiomeFeatures) {
 			HolderGetter<PlacedFeature> placedFeatures = ctx.lookup(Registries.PLACED_FEATURE);

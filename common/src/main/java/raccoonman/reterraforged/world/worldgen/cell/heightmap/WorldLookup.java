@@ -2,25 +2,25 @@ package raccoonman.reterraforged.world.worldgen.cell.heightmap;
 
 import raccoonman.reterraforged.world.worldgen.GeneratorContext;
 import raccoonman.reterraforged.world.worldgen.cell.Cell;
+import raccoonman.reterraforged.world.worldgen.cell.beach.BeachEvaluator;
 import raccoonman.reterraforged.world.worldgen.cell.terrain.TerrainType;
 import raccoonman.reterraforged.world.worldgen.densityfunction.tile.Tile;
 import raccoonman.reterraforged.world.worldgen.densityfunction.tile.TileCache;
 
 public class WorldLookup {
-	private float waterLevel;
-	private float beachLevel;
 	private TileCache cache;
 	private Heightmap heightmap;
 	private Levels levels;
-	
+	private BeachEvaluator beachEvaluator;
+
 	public WorldLookup(GeneratorContext context) {
 		this.cache = context.cache;
 		this.heightmap = context.generator.getHeightmap();
-		this.waterLevel = context.levels.water;
-		this.beachLevel = context.levels.water(5);
 		this.levels = context.levels;
+		ControlPoints controlPoints = ControlPoints.make(context.preset.world().controlPoints);
+		this.beachEvaluator = new BeachEvaluator(context.levels, controlPoints, context.preset.world().beaches);
 	}
-	
+
 	public Heightmap getHeightmap() {
 		return this.heightmap;
 	}
@@ -66,9 +66,8 @@ public class WorldLookup {
 
 	private boolean compute(Cell cell, int x, int z, boolean applyClimate) {
 		this.heightmap.apply(cell, x, z, applyClimate);
-		if (cell.terrain == TerrainType.COAST && cell.height > this.waterLevel && cell.height <= this.beachLevel) {
-			cell.terrain = TerrainType.BEACH;
-		}
+		Cell empty = Cell.empty();
+		this.beachEvaluator.evaluate(cell, empty, empty, empty, empty, true);
 		return false;
 	}
 }

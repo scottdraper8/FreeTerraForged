@@ -30,6 +30,8 @@ public class TerrainType {
     public static final Terrain ISLAND_BEACH = register("island_beach", TerrainCategory.ISLAND);
     public static final Terrain ISLAND_MOUNTAINS = register("island_mountains", TerrainCategory.ISLAND);
     public static final Terrain MUSHROOM_FIELDS = register("mushroom_fields", TerrainCategory.ISLAND);
+    public static final Terrain RIVER_SHORE = register("river_shore", TerrainCategory.RIVER_SHORE);
+    public static final Terrain LAKE_SHORE = register("lake_shore", TerrainCategory.LAKE_SHORE);
     
     public static Terrain get(String name) {
         for (Terrain terrain : TerrainType.REGISTRY) {

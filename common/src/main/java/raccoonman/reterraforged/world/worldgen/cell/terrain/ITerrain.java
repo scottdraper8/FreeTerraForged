@@ -58,6 +58,18 @@ public interface ITerrain {
 		return false;
 	}
 
+	default boolean isRiverShore() {
+		return false;
+	}
+
+	default boolean isLakeShore() {
+		return false;
+	}
+
+	default boolean isInlandShore() {
+		return this.isRiverShore() || this.isLakeShore();
+	}
+
 	default boolean isVolcano() {
 		return false;
 	}
@@ -115,6 +127,18 @@ public interface ITerrain {
 
 		default boolean isMountain() {
 			return this.getDelegate().isMountain();
+		}
+
+		default boolean isRiverShore() {
+			return this.getDelegate().isRiverShore();
+		}
+
+		default boolean isLakeShore() {
+			return this.getDelegate().isLakeShore();
+		}
+
+		default boolean isInlandShore() {
+			return this.getDelegate().isInlandShore();
 		}
 
 		default boolean isVolcano() {
