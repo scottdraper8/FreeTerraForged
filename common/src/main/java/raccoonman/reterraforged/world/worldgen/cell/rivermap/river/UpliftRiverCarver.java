@@ -167,6 +167,7 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         float targetValleyFloor = targetWaterLevel + this.bankHeightOffset;
         float valleyFloorBumpiness = ((terraceMask * 0.4F) - (drainageMask * 0.6F)) * this.levels.unit;
         float actualValleyFloorHeight = targetValleyFloor + valleyFloorBumpiness;
+        float targetBedFloor = targetWaterLevel - bedDepthOffset;
 
         // Calculate the final cell heights
         float finalHeight = cell.height;
@@ -179,6 +180,18 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         } else {
             finalHeight = carveZone4Fadeout(cell.height, currentLinearDist, zone3Radius, zone4Radius, actualValleyFloorHeight, terraceMask, drainageMask);
         }
+
+        emitShoreFields(
+                cell,
+                currentLinearDist,
+                zone1Radius,
+                zone2Radius,
+                zone3Radius,
+                zone4Radius,
+                targetWaterLevel,
+                actualValleyFloorHeight,
+                targetBedFloor
+        );
 
         // Only commit data changes to the cell if our carving operations actually cut down the world
         if (finalHeight < cell.height) {
@@ -353,6 +366,40 @@ public class UpliftRiverCarver implements RTFRiverCarver {
         // A 90% maximum blend weight ensures the steps stay well-defined
         // while allowing the regional terrain shape to gently break up the monotony.
         return NoiseUtil.lerp(progress, steppedProgress, terraceStrength * 0.90F);
+    }
+
+    private void emitShoreFields(Cell cell, float distance, float zone1Radius, float zone2Radius, float zone3Radius, float zone4Radius, float targetWaterLevel, float targetValleyFloor, float targetBedFloor) {
+        float riverWidth = zone1Radius * 2.0F;
+        float riverDepth = Math.max(0.0F, targetWaterLevel - targetBedFloor);
+        float bankHeight = Math.max(0.0F, targetValleyFloor - targetWaterLevel);
+
+        if (distance < zone1Radius) {
+            cell.riverWidth = Math.max(cell.riverWidth, riverWidth);
+            cell.riverDepth = Math.max(cell.riverDepth, riverDepth);
+            cell.riverBankHeight = Math.max(cell.riverBankHeight, bankHeight);
+            cell.riverBankAlpha = 1.0F;
+            cell.riverShoreAlpha = 1.0F;
+        } else if (distance < zone2Radius) {
+            float bankAlpha = 1.0F - NoiseUtil.clamp((distance - zone1Radius) / (zone2Radius - zone1Radius), 0.0F, 1.0F);
+            cell.riverWidth = Math.max(cell.riverWidth, riverWidth);
+            cell.riverDepth = Math.max(cell.riverDepth, riverDepth);
+            cell.riverBankHeight = Math.max(cell.riverBankHeight, bankHeight);
+            cell.riverBankAlpha = Math.max(cell.riverBankAlpha, bankAlpha);
+            cell.riverShoreAlpha = Math.max(cell.riverShoreAlpha, bankAlpha);
+        } else if (distance < zone3Radius) {
+            float shoreAlpha = 1.0F - NoiseUtil.clamp((distance - zone2Radius) / (zone3Radius - zone2Radius), 0.0F, 1.0F);
+            cell.riverWidth = Math.max(cell.riverWidth, riverWidth);
+            cell.riverDepth = Math.max(cell.riverDepth, riverDepth);
+            cell.riverBankHeight = Math.max(cell.riverBankHeight, bankHeight);
+            cell.riverShoreAlpha = Math.max(cell.riverShoreAlpha, shoreAlpha);
+        } else if (distance < zone4Radius) {
+            float fadeAlpha = 1.0F - NoiseUtil.clamp((distance - zone3Radius) / (zone4Radius - zone3Radius), 0.0F, 1.0F);
+            float shoreAlpha = fadeAlpha * 0.5F;
+            cell.riverWidth = Math.max(cell.riverWidth, riverWidth);
+            cell.riverDepth = Math.max(cell.riverDepth, riverDepth);
+            cell.riverBankHeight = Math.max(cell.riverBankHeight, bankHeight);
+            cell.riverShoreAlpha = Math.max(cell.riverShoreAlpha, shoreAlpha);
+        }
     }
 
     private void updateValleyMask(float prevX, float prevZ, float prevT, float currT, float distSqToCurr, float sqScaleFactor, Cell cell) {

@@ -112,7 +112,7 @@ public class Wetland {
         }
 
         if (internalAlpha > 0.0F) {
-            cell.riverWaterLevel = upliftOffset;
+            cell.riverWaterLevel = localWaterSurface;
         }
 
         float featureEdge = Math.min(dist, warpedDist);
@@ -137,6 +137,16 @@ public class Wetland {
             cell.terrain = TerrainType.WETLAND;
             cell.erosionMask = true;
         }
+
+        float edgeAlpha = NoiseUtil.clamp(1.0F - (d2 / this.radius2), 0.0F, 1.0F);
+        float bankAlpha = NoiseUtil.clamp(edgeAlpha * 2.0F, 0.0F, 1.0F);
+        float shoreAlpha = NoiseUtil.clamp(edgeAlpha * 1.5F, 0.0F, 1.0F);
+        float bankHeight = Math.max(0.0F, cell.height - localWaterSurface);
+        float depth = Math.max(0.0F, localWaterSurface - bed);
+        cell.lakeBankAlpha = Math.max(cell.lakeBankAlpha, bankAlpha);
+        cell.lakeShoreAlpha = Math.max(cell.lakeShoreAlpha, shoreAlpha);
+        cell.lakeBankHeight = Math.max(cell.lakeBankHeight, bankHeight / (singleBlock > 0 ? singleBlock : 1.0F));
+        cell.lakeDepth = Math.max(cell.lakeDepth, depth / (singleBlock > 0 ? singleBlock : 1.0F));
 
         cell.riverMask = Math.min(cell.riverMask, 1.0F - internalAlpha);
     }

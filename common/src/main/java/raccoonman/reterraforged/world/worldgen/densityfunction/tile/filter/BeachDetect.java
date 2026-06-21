@@ -68,6 +68,8 @@ public record BeachDetect(BeachEvaluator evaluator, ThreadLocal<SnapshotBuffers>
         }
     }
 
+    private static final Cell PRESENT_SENTINEL = new Cell();
+
     private static class SnapshotNeighborhood implements BeachEvaluator.Neighborhood {
         private int cx, cz, total;
         private BeachType[] beachTypes;
@@ -83,7 +85,12 @@ public record BeachDetect(BeachEvaluator evaluator, ThreadLocal<SnapshotBuffers>
 
         @Override
         public Cell getCell(int dx, int dz) {
-            return Cell.empty();
+            int x = this.cx + dx;
+            int z = this.cz + dz;
+            if (x < 0 || x >= this.total || z < 0 || z >= this.total) {
+                return Cell.empty();
+            }
+            return PRESENT_SENTINEL;
         }
 
         @Override

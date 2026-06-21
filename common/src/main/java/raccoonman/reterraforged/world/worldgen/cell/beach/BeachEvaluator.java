@@ -221,7 +221,7 @@ public class BeachEvaluator {
 	}
 
 	private float resolveLocalWaterBase(Cell cell) {
-		return (cell.riverWaterLevel > 0.0F) ? this.levels.water + cell.riverWaterLevel : this.levels.water;
+		return (cell.riverWaterLevel > 0.0F) ? cell.riverWaterLevel : this.levels.water;
 	}
 
 	private boolean inSlopeRange(Cell cell, float maxSlope) {
