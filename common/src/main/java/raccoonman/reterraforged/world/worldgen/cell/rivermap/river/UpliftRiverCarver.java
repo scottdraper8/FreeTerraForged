@@ -370,8 +370,9 @@ public class UpliftRiverCarver implements RTFRiverCarver {
 
     private void emitShoreFields(Cell cell, float distance, float zone1Radius, float zone2Radius, float zone3Radius, float zone4Radius, float targetWaterLevel, float targetValleyFloor, float targetBedFloor) {
         float riverWidth = zone1Radius * 2.0F;
-        float riverDepth = Math.max(0.0F, targetWaterLevel - targetBedFloor);
-        float bankHeight = Math.max(0.0F, targetValleyFloor - targetWaterLevel);
+        float riverDepth = Math.max(0.0F, this.levels.scale(targetWaterLevel - targetBedFloor));
+        float bankHeight = Math.max(0.0F, this.levels.scale(targetValleyFloor - targetWaterLevel));
+        cell.riverWaterLevel = Math.max(cell.riverWaterLevel, targetWaterLevel);
 
         if (distance < zone1Radius) {
             cell.riverWidth = Math.max(cell.riverWidth, riverWidth);
