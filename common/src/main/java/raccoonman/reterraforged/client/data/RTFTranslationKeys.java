@@ -158,6 +158,14 @@ public final class RTFTranslationKeys {
 	public static final String GUI_SLIDER_SPACING = resolve("gui.slider.spacing");
 	public static final String GUI_SLIDER_SEPARATION = resolve("gui.slider.separation");
 	public static final String GUI_SLIDER_STRATA_REGION_SIZE = resolve("gui.slider.strataRegionSize");
+	public static final String GUI_SLIDER_STRATA_ROCK_MIN_LAYERS = resolve("gui.slider.strata.rockMinLayers");
+	public static final String GUI_SLIDER_STRATA_ROCK_MAX_LAYERS = resolve("gui.slider.strata.rockMaxLayers");
+	public static final String GUI_SLIDER_STRATA_ROCK_MIN_DEPTH = resolve("gui.slider.strata.rockMinDepth");
+	public static final String GUI_SLIDER_STRATA_ROCK_MAX_DEPTH = resolve("gui.slider.strata.rockMaxDepth");
+	public static final String GUI_SLIDER_STRATA_STONE_WEIGHT = resolve("gui.slider.strata.stoneWeight");
+	public static final String GUI_SLIDER_STRATA_GRANITE_WEIGHT = resolve("gui.slider.strata.graniteWeight");
+	public static final String GUI_SLIDER_STRATA_ANDESITE_WEIGHT = resolve("gui.slider.strata.andesiteWeight");
+	public static final String GUI_SLIDER_STRATA_DIORITE_WEIGHT = resolve("gui.slider.strata.dioriteWeight");
 	public static final String GUI_SLIDER_MOUNTAIN_BIOME_USAGE = resolve("gui.slider.mountainBiomeUsage");
 	public static final String GUI_SLIDER_VOLCANO_BIOME_USAGE = resolve("gui.slider.volcanoBiomeUsage");
 	public static final String GUI_SLIDER_ISLAND_DENSITY = resolve("gui.slider.islandDensity");

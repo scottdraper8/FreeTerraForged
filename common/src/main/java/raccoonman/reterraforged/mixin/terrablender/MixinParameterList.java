@@ -19,8 +19,10 @@ import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.biome.Climate;
 import raccoonman.reterraforged.RTFCommon;
+import raccoonman.reterraforged.data.worldgen.preset.PresetSurfaceRuleData;
 import raccoonman.reterraforged.data.worldgen.preset.settings.Preset;
 import raccoonman.reterraforged.registries.RTFRegistries;
 import raccoonman.reterraforged.world.worldgen.biome.UndergroundBiomeBanding;
@@ -29,6 +31,7 @@ import raccoonman.reterraforged.world.worldgen.terrablender.TBTargetPoint;
 import terrablender.api.Region;
 import terrablender.api.RegionType;
 import terrablender.api.Regions;
+import terrablender.api.SurfaceRuleManager;
 
 @Mixin(
 	value = Climate.ParameterList.class,
@@ -61,17 +64,22 @@ class MixinParameterList<T> {
 		if (regionType == RegionType.OVERWORLD) {
 			registryAccess.lookup(RTFRegistries.PRESET)
 				.flatMap(registry -> registry.get(Preset.KEY))
-				.ifPresent(holder -> this.reterraforged$bandingPreset = holder.value());
+				.ifPresent(holder -> {
+					Preset preset = holder.value();
+					this.reterraforged$bandingPreset = preset;
+					SurfaceRuleManager.setDefaultSurfaceRules(
+						SurfaceRuleManager.RuleCategory.OVERWORLD,
+						PresetSurfaceRuleData.overworld(
+							preset,
+							registryAccess.lookupOrThrow(Registries.DENSITY_FUNCTION),
+							registryAccess.lookupOrThrow(RTFRegistries.NOISE)
+						)
+					);
+					RTFCommon.LOGGER.debug(
+						"Registered RTF overworld surface rules as TerraBlender's minecraft namespace default"
+					);
+				});
 		}
-//
-//    	registryAccess.lookup(RTFRegistries.PRESET).flatMap((registry) -> {
-//    		return registry.get(Preset.KEY);
-//    	}).ifPresent((holder) -> {
-//    		Preset preset = holder.value();
-//        	TBCompat.setSurfaceRules(preset, (defaultRules) -> {
-//        		return RTFSurfaceRuleData.overworld(preset, registryAccess.lookupOrThrow(Registries.DENSITY_FUNCTION), registryAccess.lookupOrThrow(RTFRegistries.NOISE), defaultRules);
-//            });
-//    	});
 	}
 
 	@ModifyArg(

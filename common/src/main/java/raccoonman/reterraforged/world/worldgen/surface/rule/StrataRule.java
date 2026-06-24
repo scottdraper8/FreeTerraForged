@@ -2,6 +2,7 @@ package raccoonman.reterraforged.world.worldgen.surface.rule;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
@@ -66,39 +67,109 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 		return layers;
 	}
 
-	public record Strata(TagKey<Block> materials, Holder<Noise> noise, int attempts, int minLayers, int maxLayers, float minDepth, float maxDepth) {
+	public record Strata(@Nullable TagKey<Block> materials, List<WeightedMaterial> weightedMaterials, Holder<Noise> noise, int attempts, int minLayers, int maxLayers, float minDepth, float maxDepth) {
 		public static final Codec<Strata> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				TagKey.hashedCodec(Registries.BLOCK).fieldOf("materials").forGetter(Strata::materials),
+				TagKey.hashedCodec(Registries.BLOCK).optionalFieldOf("materials").forGetter((s) -> Optional.ofNullable(s.materials)),
+				WeightedMaterial.CODEC.listOf().optionalFieldOf("weighted_materials", List.of()).forGetter(Strata::weightedMaterials),
 				Noise.CODEC.fieldOf("noise").forGetter(Strata::noise),
 				Codec.INT.fieldOf("attempts").forGetter(Strata::attempts),
 				Codec.INT.fieldOf("min_layers").forGetter(Strata::minLayers),
 				Codec.INT.fieldOf("max_layers").forGetter(Strata::maxLayers),
 				Codec.FLOAT.fieldOf("min_depth").forGetter(Strata::minDepth),
 				Codec.FLOAT.fieldOf("max_depth").forGetter(Strata::maxDepth)
-		).apply(instance, Strata::new));
+		).apply(instance, (materials, weightedMaterials, noise, attempts, minLayers, maxLayers, minDepth, maxDepth) -> new Strata(materials.orElse(null), weightedMaterials, noise, attempts, minLayers, maxLayers, minDepth, maxDepth)));
+		
+		public Strata {
+			weightedMaterials = ImmutableList.copyOf(weightedMaterials);
+		}
+		
+		public Strata(TagKey<Block> materials, Holder<Noise> noise, int attempts, int minLayers, int maxLayers, float minDepth, float maxDepth) {
+			this(materials, List.of(), noise, attempts, minLayers, maxLayers, minDepth, maxDepth);
+		}
 
 		public List<Layer> generateLayers(RandomSource random) {
 			int lastIndex = -1;
-			int layers = this.minLayers + NoiseUtil.round(random.nextFloat() * (this.maxLayers - this.minLayers));
+			int minLayers = Math.max(0, this.minLayers);
+			int maxLayers = Math.max(minLayers, this.maxLayers);
+			float minDepth = Math.max(0.0F, Math.min(this.minDepth, this.maxDepth));
+			float maxDepth = Math.max(minDepth, Math.max(this.minDepth, this.maxDepth));
+			int layers = minLayers + NoiseUtil.round(random.nextFloat() * (maxLayers - minLayers));
 			List<Layer> result = new ArrayList<>();
-			List<Holder<Block>> materials = ImmutableList.copyOf(BuiltInRegistries.BLOCK.getTagOrEmpty(this.materials));
+			List<WeightedMaterial> materials = this.getMaterials();
+			if (materials.isEmpty()) {
+				return result;
+			}
+			float totalWeight = totalWeight(materials);
+			if (totalWeight <= 0.0F) {
+				return result;
+			}
 
 			int seed = random.nextInt();
 			for (int i = 0; i < layers; i++) {
 				int attempts = this.attempts;
-				int index = random.nextInt(materials.size());
+				int index = selectIndex(materials, totalWeight, random);
 				while (--attempts >= 0 && index == lastIndex) {
-					index = random.nextInt(materials.size());
+					index = selectIndex(materials, totalWeight, random);
 				}
 				if (index != lastIndex) {
 					lastIndex = index;
-					BlockState material = materials.get(index).value().defaultBlockState();
-					float depth = this.minDepth + random.nextFloat() * (this.maxDepth - this.minDepth);
+					BlockState material = materials.get(index).material().defaultBlockState();
+					float depth = minDepth + random.nextFloat() * (maxDepth - minDepth);
 					result.add(new Layer(material, Noises.shiftSeed(Noises.mul(this.noise.value(), depth), random.nextInt()), seed));
 				}
 			}
 			return result;
 		}
+		
+		private List<WeightedMaterial> getMaterials() {
+			if (!this.weightedMaterials.isEmpty()) {
+				return this.weightedMaterials;
+			}
+			if (this.materials == null) {
+				return List.of();
+			}
+			List<WeightedMaterial> materials = new ArrayList<>();
+			for (Holder<Block> material : BuiltInRegistries.BLOCK.getTagOrEmpty(this.materials)) {
+				materials.add(new WeightedMaterial(material.value(), 1.0F));
+			}
+			return materials;
+		}
+		
+		private static int selectIndex(List<WeightedMaterial> materials, float totalWeight, RandomSource random) {
+			float value = random.nextFloat() * totalWeight;
+			float sum = 0.0F;
+			for (int i = 0; i < materials.size(); i++) {
+				float weight = Math.max(0.0F, materials.get(i).weight());
+				if (weight <= 0.0F) {
+					continue;
+				}
+				sum += weight;
+				if (value <= sum) {
+					return i;
+				}
+			}
+			for (int i = materials.size() - 1; i >= 0; i--) {
+				if (materials.get(i).weight() > 0.0F) {
+					return i;
+				}
+			}
+			return 0;
+		}
+		
+		private static float totalWeight(List<WeightedMaterial> materials) {
+			float total = 0.0F;
+			for (WeightedMaterial material : materials) {
+				total += Math.max(0.0F, material.weight());
+			}
+			return total;
+		}
+	}
+	
+	public record WeightedMaterial(Block material, float weight) {
+		public static final Codec<WeightedMaterial> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+				BuiltInRegistries.BLOCK.byNameCodec().fieldOf("material").forGetter(WeightedMaterial::material),
+				Codec.FLOAT.fieldOf("weight").forGetter(WeightedMaterial::weight)
+		).apply(instance, WeightedMaterial::new));
 	}
 
 	public record Layer(BlockState material, Noise depth, int seed) {
@@ -152,6 +223,8 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 			int localX = this.surfaceContext.blockX & 0xF;
 			int localZ = this.surfaceContext.blockZ & 0xF;
 			int height = this.surfaceContext.chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ);
+			int minY = this.surfaceContext.chunk.getMinBuildHeight();
+			int totalDepth = Math.max(1, height - minY);
 
 			float sum = 0.0F;
 			for(int i = 0; i < layerCount; i++) {
@@ -163,7 +236,7 @@ public record StrataRule(ResourceLocation name, Holder<Noise> selector, List<Str
 
 			int y = height;
 			for(int i = 0; i < layerCount; i++) {
-				this.depthBuffer[i] = y -= Math.round((this.depthBuffer[i] / sum) * height);
+				this.depthBuffer[i] = y -= Math.round((this.depthBuffer[i] / sum) * totalDepth);
 			}
 		}
 

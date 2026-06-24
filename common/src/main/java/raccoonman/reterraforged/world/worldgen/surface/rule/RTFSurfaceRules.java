@@ -14,7 +14,12 @@ import raccoonman.reterraforged.world.worldgen.surface.rule.StrataRule.Strata;
 public class RTFSurfaceRules {
 
 	public static void bootstrap() {
+		register("overworld_surface", DynamicOverworldSurfaceRule.CODEC);
 		register("strata", StrataRule.CODEC);
+	}
+	
+	public static DynamicOverworldSurfaceRule overworldSurface(int deepslateFullY, int deepslateTransitionTopY) {
+		return new DynamicOverworldSurfaceRule(deepslateFullY, deepslateTransitionTopY);
 	}
 	
 	public static StrataRule strata(ResourceLocation name, Holder<Noise> selector, List<Strata> strata, int iterations) {

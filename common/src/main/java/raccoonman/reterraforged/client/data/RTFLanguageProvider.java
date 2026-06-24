@@ -31,6 +31,7 @@ public final class RTFLanguageProvider {
 			this.add(RTFTranslationKeys.GUI_LITE_PRESET_NAME, "Legacy - TerraForged Lite");
 			this.add(RTFTranslationKeys.GUI_VANILLAISH_PRESET_NAME, "Legacy - TerraForged Vanilla-ish");
 			this.add(RTFTranslationKeys.GUI_RIVERS_PRESET_NAME, "Modern Default with 3D Rivers");
+			this.add(RTFTranslationKeys.GUI_COMMUNITY1_PRESET_NAME, "Community Preset - Modern Upscaled");
 			this.add(RTFTranslationKeys.GUI_WORLD_SETTINGS_TITLE, "World Settings");
 			this.add(RTFTranslationKeys.GUI_SURFACE_SETTINGS_TITLE, "Surface Settings (Experimental)");
 			this.add(RTFTranslationKeys.GUI_CAVE_SETTINGS_TITLE, "Cave Settings (Experimental)");
@@ -166,6 +167,14 @@ public final class RTFLanguageProvider {
 			this.add(RTFTranslationKeys.GUI_SLIDER_SPACING, "Spacing");
 			this.add(RTFTranslationKeys.GUI_SLIDER_SEPARATION, "Separation");
 			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_REGION_SIZE, "Strata Region Size");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MIN_LAYERS, "Rock Strata Min Layers");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MAX_LAYERS, "Rock Strata Max Layers");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MIN_DEPTH, "Rock Strata Min Depth");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MAX_DEPTH, "Rock Strata Max Depth");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_STONE_WEIGHT, "Stone Strata Weight");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_GRANITE_WEIGHT, "Granite Strata Weight");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_ANDESITE_WEIGHT, "Andesite Strata Weight");
+			this.add(RTFTranslationKeys.GUI_SLIDER_STRATA_DIORITE_WEIGHT, "Diorite Strata Weight");
 			this.add(RTFTranslationKeys.GUI_SLIDER_MOUNTAIN_BIOME_USAGE, "Mountain Biome Usage");
 			this.add(RTFTranslationKeys.GUI_SLIDER_VOLCANO_BIOME_USAGE, "Volcano Biome Usage");
 
@@ -333,6 +342,14 @@ public final class RTFLanguageProvider {
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_MOUNTAIN_BIOME_USAGE), "The probability that mountainous terrain will be set to a mountain biome type.\nThis may help improve compatibility with mods that rely exclusively on mountain biomes.");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_VOLCANO_BIOME_USAGE), "The probability that volcano terrain will be set to a volcano biome type.\nThis may help improve compatibility with mods that rely exclusively on volcano biomes.");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_REGION_SIZE), "Controls the size of strata regions");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MIN_LAYERS), "Controls the minimum number of vertical rock strata layers.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MAX_LAYERS), "Controls the maximum number of vertical rock strata layers.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MIN_DEPTH), "Controls the minimum relative thickness contribution of each rock strata layer.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_ROCK_MAX_DEPTH), "Controls the maximum relative thickness contribution of each rock strata layer.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_STONE_WEIGHT), "Controls how often stone is selected for rock strata layers.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_GRANITE_WEIGHT), "Controls how often granite is selected for rock strata layers.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_ANDESITE_WEIGHT), "Controls how often andesite is selected for rock strata layers.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_STRATA_DIORITE_WEIGHT), "Controls how often diorite is selected for rock strata layers.");
 		}
 	}
 }
