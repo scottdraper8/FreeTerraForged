@@ -30,8 +30,8 @@ public final class RTFLanguageProvider {
 			this.add(RTFTranslationKeys.GUI_HUGE_BIOMES_PRESET_NAME, "Legacy - TerraForged Huge Biomes");
 			this.add(RTFTranslationKeys.GUI_LITE_PRESET_NAME, "Legacy - TerraForged Lite");
 			this.add(RTFTranslationKeys.GUI_VANILLAISH_PRESET_NAME, "Legacy - TerraForged Vanilla-ish");
-			this.add(RTFTranslationKeys.GUI_RIVERS_PRESET_NAME, "Modern Default with 3D Rivers");
-			this.add(RTFTranslationKeys.GUI_COMMUNITY1_PRESET_NAME, "Community Preset - Modern Upscaled");
+			this.add(RTFTranslationKeys.GUI_RIVERS_PRESET_NAME, "Modern - Default with 3D Rivers");
+			this.add(RTFTranslationKeys.GUI_COMMUNITY1_PRESET_NAME, "Modern - Upscaled Community Preset");
 			this.add(RTFTranslationKeys.GUI_WORLD_SETTINGS_TITLE, "World Settings");
 			this.add(RTFTranslationKeys.GUI_SURFACE_SETTINGS_TITLE, "Surface Settings (Experimental)");
 			this.add(RTFTranslationKeys.GUI_CAVE_SETTINGS_TITLE, "Cave Settings (Experimental)");
@@ -44,7 +44,7 @@ public final class RTFLanguageProvider {
 
 			this.add(RTFTranslationKeys.GUI_BUTTON_TRUE, "true");
 			this.add(RTFTranslationKeys.GUI_BUTTON_FALSE, "false");
-			this.add(RTFTranslationKeys.GUI_BUTTON_CREATE, "Create");
+			this.add(RTFTranslationKeys.GUI_BUTTON_CREATE, "Create Default");
 			this.add(RTFTranslationKeys.GUI_BUTTON_COPY, "Copy");
 			this.add(RTFTranslationKeys.GUI_BUTTON_DELETE, "Delete");
 			this.add(RTFTranslationKeys.GUI_BUTTON_OPEN_PRESET_FOLDER, "Open Preset Folder");
@@ -121,7 +121,8 @@ public final class RTFLanguageProvider {
 			this.add(RTFTranslationKeys.GUI_SLIDER_MOISTURE_MIN, "Min");
 			this.add(RTFTranslationKeys.GUI_SLIDER_MOISTURE_MAX, "Max");
 			this.add(RTFTranslationKeys.GUI_SLIDER_MOISTURE_BIAS, "Bias");
-			this.add(RTFTranslationKeys.GUI_SLIDER_BIOME_SIZE, "Biome Size");
+			this.add(RTFTranslationKeys.GUI_SLIDER_BIOME_SIZE, "Surface Biome Size");
+			this.add(RTFTranslationKeys.GUI_SLIDER_UNDERGROUND_BIOME_SIZE, "Underground Biome Size");
 			this.add(RTFTranslationKeys.GUI_SLIDER_MACRO_NOISE_SIZE, "Macro Noise Size");
 			this.add(RTFTranslationKeys.GUI_SLIDER_BIOME_WARP_SCALE, "Biome Warp Size");
 			this.add(RTFTranslationKeys.GUI_SLIDER_BIOME_WARP_STRENGTH, "Biome Warp Strength");
@@ -284,7 +285,8 @@ public final class RTFLanguageProvider {
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_MOISTURE_MIN), "The lower limit of the range");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_MOISTURE_MAX), "The upper limit of the range");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_MOISTURE_BIAS), "The bias towards either end of the range");
-			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_BIOME_SIZE), "Controls the size of individual biomes");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_BIOME_SIZE), "Controls the horizontal scale of surface biome climate regions.");
+			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_UNDERGROUND_BIOME_SIZE), "Controls the horizontal coherence and vertical thickness of underground biome bands.");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_MACRO_NOISE_SIZE), "Macro noise is used to group large areas of biomes into a single type (such as deserts)");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_BIOME_WARP_SCALE), "Controls the scale of shape distortion for biomes");
 			this.add(Tooltips.translationKey(RTFTranslationKeys.GUI_SLIDER_BIOME_WARP_STRENGTH), "Controls the strength of shape distortion for biomes");
