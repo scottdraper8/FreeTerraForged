@@ -12,7 +12,7 @@ import etcodehome.freeterraforged.platform.ModLoaderUtil;
 public final class CompatibilityMixinPlugin implements IMixinConfigPlugin {
 	private static final Set<String> BIOLITH_VERSIONS = Set.of("3.0.11", "3.0.14");
 	private static final Set<String> LITHOSTITCHED_VERSIONS = Set.of(
-		"1.8.0+beta4", "1.8.0+beta5"
+		"1.8.0+beta4", "1.8.0+beta5", "1.8.0+beta6"
 	);
 
 	@Override

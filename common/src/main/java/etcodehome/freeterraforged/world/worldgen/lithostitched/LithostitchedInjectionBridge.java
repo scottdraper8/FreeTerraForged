@@ -78,7 +78,7 @@ import etcodehome.freeterraforged.world.worldgen.runtime.PreServerWorldgenContex
 
 public final class LithostitchedInjectionBridge {
 	private static final AtomicLong REVISION = new AtomicLong();
-	public static final Set<String> SUPPORTED_VERSIONS = Set.of("1.8.0+beta4", "1.8.0+beta5");
+	public static final Set<String> SUPPORTED_VERSIONS = Set.of("1.8.0+beta4", "1.8.0+beta5", "1.8.0+beta6");
 	private static final ResourceLocation NO_REGION = FTFCommon.location("no_region");
 	private static final ResourceLocation ADD_POINTS = lithostitched("add_points");
 	private static final ResourceLocation DISPATCH_ALTERNATE_LAYOUT = lithostitched("dispatch_alternate_layout");
