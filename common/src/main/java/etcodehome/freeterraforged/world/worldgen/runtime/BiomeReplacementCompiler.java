@@ -53,16 +53,19 @@ public final class BiomeReplacementCompiler {
 				diagnostics.add(new BiomeReplacementConfig.Diagnostic(
 					BiomeReplacementConfig.Severity.WARNING,
 					diagnostic.code(), diagnostic.line(),
-					diagnostic.message() + "; compatibility validation skipped this input"
+					diagnostic.message() + "; compatibility validation skipped this input",
+					false
 				));
 			} else {
 				diagnostics.add(diagnostic);
 			}
 		}
-		requireNoErrors(diagnostics, snapshot);
+		ResourceLocation dimension = owner.dimension().location();
+		if (invalidatesConfig(diagnostics)) {
+			return ignoredConfig(snapshot, dimension, diagnostics);
+		}
 
 		Registry<Biome> biomes = owner.registries().registryOrThrow(Registries.BIOME);
-		ResourceLocation dimension = owner.dimension().location();
 		Scope global = new Scope();
 		Scope selectedDimension = new Scope();
 		int ruleIndex = 0;
@@ -75,8 +78,11 @@ public final class BiomeReplacementCompiler {
 				ResourceLocation ruleDimension = ResourceLocation.tryParse(rule.dimension());
 				if (ruleDimension == null) {
 					bindingFailure(
-						config, diagnostics, rule.line(), "invalid_dimension",
-						"Invalid dimension ID '" + rule.dimension() + "'"
+						config, diagnostics, rule.line(), new RuleBindingException(
+							"invalid_dimension",
+							"Invalid dimension ID '" + rule.dimension() + "'",
+							true
+						)
 					);
 					continue;
 				}
@@ -86,12 +92,14 @@ public final class BiomeReplacementCompiler {
 				scope = selectedDimension;
 			}
 			try {
-				bindRule(rule, currentRuleIndex, scope, biomes, diagnostics);
+				bindRule(config, rule, currentRuleIndex, scope, biomes, diagnostics);
 			} catch (RuleBindingException failure) {
-				bindingFailure(config, diagnostics, rule.line(), failure.code, failure.getMessage());
+				bindingFailure(config, diagnostics, rule.line(), failure);
 			}
 		}
-		requireNoErrors(diagnostics, snapshot);
+		if (invalidatesConfig(diagnostics)) {
+			return ignoredConfig(snapshot, dimension, diagnostics);
+		}
 
 		IdentityHashMap<Holder<Biome>, BiomeReplacementPlan.Decision> effective =
 			BiomeReplacementPrecedence.overlay(
@@ -162,11 +170,14 @@ public final class BiomeReplacementCompiler {
 				));
 			}
 		}
-		requireNoErrors(diagnostics, snapshot);
+		if (invalidatesConfig(diagnostics)) {
+			return ignoredConfig(snapshot, dimension, diagnostics);
+		}
 		return new BiomeReplacementPlan(snapshot, dimension, effective, removals, targets, diagnostics);
 	}
 
 	private static void bindRule(
+		BiomeReplacementConfig config,
 		BiomeReplacementConfig.Rule rule,
 		int ruleIndex,
 		Scope scope,
@@ -211,22 +222,32 @@ public final class BiomeReplacementCompiler {
 
 		ResourceLocation tagId = parseId(rule.selector(), "biome tag");
 		TagKey<Biome> tag = TagKey.create(Registries.BIOME, tagId);
-		List<Holder.Reference<Biome>> members = biomes.holders()
-			.filter(holder -> holder.is(tag))
-			.sorted(Comparator.comparing(holder -> holder.key().location().toString()))
+		var resolvedTag = biomes.getTag(tag);
+		if (resolvedTag.isEmpty()) {
+			ignoredReference(
+				config, diagnostics, rule.line(), "missing_tag",
+				"Biome tag #" + tagId + " does not exist in the owner's frozen tag snapshot"
+			);
+			return;
+		}
+		List<Holder<Biome>> members = resolvedTag.orElseThrow().stream()
+			.sorted(Comparator.comparing(BiomeReplacementCompiler::biomeId))
 			.toList();
 		if (members.isEmpty()) {
-			diagnostics.add(warning(
-				"empty_tag", rule.line(),
+			ignoredReference(
+				config, diagnostics, rule.line(), "empty_tag",
 				"Biome tag #" + tagId + " has no members in the owner's frozen tag snapshot"
-			));
+			);
+			return;
 		}
-		for (Holder.Reference<Biome> source : members) {
-			if (MARKER_BIOMES.contains(source.key().location().toString())) {
+		for (Holder<Biome> source : members) {
+			String sourceId = biomeId(source);
+			if (MARKER_BIOMES.contains(sourceId)) {
 				throw new RuleBindingException(
 					"integration_marker",
 					"Biome tag #" + tagId + " includes integration marker "
-						+ source.key().location() + " and cannot be used"
+						+ sourceId + " and cannot be used",
+					true
 				);
 			}
 		}
@@ -264,14 +285,16 @@ public final class BiomeReplacementCompiler {
 		ResourceLocation location = parseId(id, role + " biome");
 		ResourceKey<Biome> key = ResourceKey.create(Registries.BIOME, location);
 		return biomes.getHolder(key).orElseThrow(() -> new RuleBindingException(
-			"missing_biome", "Biome " + role + " '" + location + "' does not exist"
+			"missing_biome", "Biome " + role + " '" + location + "' does not exist", false
 		));
 	}
 
 	private static ResourceLocation parseId(String id, String role) throws RuleBindingException {
 		ResourceLocation location = ResourceLocation.tryParse(id);
 		if (location == null) {
-			throw new RuleBindingException("invalid_resource_location", "Invalid " + role + " ID '" + id + "'");
+			throw new RuleBindingException(
+				"invalid_resource_location", "Invalid " + role + " ID '" + id + "'", true
+			);
 		}
 		return location;
 	}
@@ -280,7 +303,8 @@ public final class BiomeReplacementCompiler {
 		if (MARKER_BIOMES.contains(id)) {
 			throw new RuleBindingException(
 				"integration_marker",
-				"Biome " + role + " '" + id + "' is an integration marker and cannot be used"
+				"Biome " + role + " '" + id + "' is an integration marker and cannot be used",
+				true
 			);
 		}
 	}
@@ -289,18 +313,37 @@ public final class BiomeReplacementCompiler {
 		BiomeReplacementConfig config,
 		List<BiomeReplacementConfig.Diagnostic> diagnostics,
 		int line,
-		String code,
-		String message
+		RuleBindingException failure
 	) {
-		BiomeReplacementConfig.Severity severity = code.equals("integration_marker")
+		if (!failure.invalidatesConfig) {
+			ignoredReference(config, diagnostics, line, failure.code, failure.getMessage());
+			return;
+		}
+		BiomeReplacementConfig.Severity severity = failure.code.equals("integration_marker")
 			|| !config.legacyImport()
 				? BiomeReplacementConfig.Severity.ERROR
 				: BiomeReplacementConfig.Severity.WARNING;
 		diagnostics.add(new BiomeReplacementConfig.Diagnostic(
-			severity, code, line,
-			message + (severity == BiomeReplacementConfig.Severity.WARNING
+			severity, failure.code, line,
+			failure.getMessage() + (severity == BiomeReplacementConfig.Severity.WARNING
 				? "; compatibility validation ignored this rule"
-				: "")
+				: ""),
+			severity == BiomeReplacementConfig.Severity.ERROR
+		));
+	}
+
+	private static void ignoredReference(
+		BiomeReplacementConfig config,
+		List<BiomeReplacementConfig.Diagnostic> diagnostics,
+		int line,
+		String code,
+		String message
+	) {
+		BiomeReplacementConfig.Severity severity = config.legacyImport()
+			? BiomeReplacementConfig.Severity.WARNING
+			: BiomeReplacementConfig.Severity.ERROR;
+		diagnostics.add(new BiomeReplacementConfig.Diagnostic(
+			severity, code, line, message + "; rule ignored", false
 		));
 	}
 
@@ -372,23 +415,34 @@ public final class BiomeReplacementCompiler {
 			.toList();
 	}
 
-	private static void requireNoErrors(
-		List<BiomeReplacementConfig.Diagnostic> diagnostics,
-		BiomeReplacementConfigSnapshot snapshot
+	private static boolean invalidatesConfig(
+		List<BiomeReplacementConfig.Diagnostic> diagnostics
 	) {
-		List<BiomeReplacementConfig.Diagnostic> errors = diagnostics.stream()
-			.filter(diagnostic -> diagnostic.severity() == BiomeReplacementConfig.Severity.ERROR)
-			.toList();
-		if (!errors.isEmpty()) {
-			String first = errors.getFirst().line() > 0
-				? "line " + errors.getFirst().line() + ": " + errors.getFirst().message()
-				: errors.getFirst().message();
-			throw new IllegalStateException(
-				"Invalid biome replacement config " + snapshot.path() + " ["
-					+ errors.getFirst().code() + "] " + first
-					+ (errors.size() == 1 ? "" : " (and " + (errors.size() - 1) + " more error(s))")
-			);
-		}
+		return diagnostics.stream().anyMatch(BiomeReplacementConfig.Diagnostic::invalidatesConfig);
+	}
+
+	private static BiomeReplacementPlan ignoredConfig(
+		BiomeReplacementConfigSnapshot snapshot,
+		ResourceLocation dimension,
+		List<BiomeReplacementConfig.Diagnostic> diagnostics
+	) {
+		List<BiomeReplacementConfig.Diagnostic> reported = new ArrayList<>(diagnostics);
+		reported.add(new BiomeReplacementConfig.Diagnostic(
+			BiomeReplacementConfig.Severity.ERROR,
+			"config_ignored",
+			0,
+			"Biome replacement config " + snapshot.path()
+				+ " contains invalid settings; all replacement rules were ignored",
+			false
+		));
+		return new BiomeReplacementPlan(
+			snapshot,
+			dimension,
+			new IdentityHashMap<>(),
+			identitySet(),
+			identitySet(),
+			reported
+		);
 	}
 
 	private static Set<Holder<Biome>> identitySet() {
@@ -424,10 +478,12 @@ public final class BiomeReplacementCompiler {
 
 	private static final class RuleBindingException extends Exception {
 		private final String code;
+		private final boolean invalidatesConfig;
 
-		private RuleBindingException(String code, String message) {
+		private RuleBindingException(String code, String message, boolean invalidatesConfig) {
 			super(message);
 			this.code = code;
+			this.invalidatesConfig = invalidatesConfig;
 		}
 	}
 }
